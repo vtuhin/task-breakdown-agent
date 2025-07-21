@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Task Breakdown Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        #taskInput {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        #taskInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .input-hint {
+            color: #666;
+            margin-top: 5px;
+            font-size: 14px;
+            display: block;
+        }
+        
+        #submitBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #submitBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        #submitBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .subtask {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .subtask-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .subtask-description {
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .subtask-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #888;
+            flex-wrap: wrap;
+        }
+        
+        .priority-high { border-left-color: #e74c3c; }
+        .priority-medium { border-left-color: #f39c12; }
+        .priority-low { border-left-color: #2ecc71; }
+        
+        .calendar-events {
+            margin-top: 20px;
+        }
+        
+        .event {
+            background: #e8f5e8;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-left: 4px solid #2ecc71;
+        }
+        
+        .event.priority-high {
+            border-left-color: #e74c3c;
+            background: #ffeaea;
+        }
+        
+        .event.priority-medium {
+            border-left-color: #f39c12;
+            background: #fef9e7;
+        }
+        
+        .event.priority-low {
+            border-left-color: #2ecc71;
+            background: #e8f5e8;
+        }
+        
+        .event-info {
+            flex-grow: 1;
+        }
+        
+        .event-time {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .event-duration {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .event-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+        
+        .event-link:hover {
+            text-decoration: underline;
+        }
+        
+        .error {
+            background: #ffe6e6;
+            color: #d32f2f;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0 20px 0;
+            text-align: center;
+        }
+        
+        .schedule-summary {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #4a90e2;
+        }
+        
+        .schedule-summary h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .schedule-summary p {
+            margin: 5px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        h2, h3 {
+            color: #333;
+            margin: 20px 0 10px 0;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Task Breakdown Agent</h1>
+        
+        <form id="taskForm">
+            <div class="form-group">
+                <label for="taskInput">Enter your task (include dates/times if needed):</label>
+                <textarea 
+                    id="taskInput" 
+                    placeholder="e.g., Plan a company retreat for 50 employees by March 15th at 2 PM, or Prepare presentation for next Tuesday"
+                    required
+                ></textarea>
+                <small class="input-hint">
+                    💡 Try including dates like "by March 15th", "next Friday at 2 PM", or "due tomorrow"
+                </small>
+            </div>
+            
+            <button type="submit" id="submitBtn">
+                Break Down Task & Create Calendar Events
+            </button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>🤖 AI is analyzing your task...<br>
+            📅 Checking your calendar for availability...<br>
+            ⏰ Creating optimized schedule...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <h2>Task Breakdown Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('taskForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const taskInput = document.getElementById('taskInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            const task = taskInput.value.trim();
+            if (!task) return;
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/process-task', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ task: task })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    throw new Error(data.error || 'Failed to process task');
+                }
+                
+            } catch (error) {
+                resultsContent.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                results.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function displayResults(data) {
+            const resultsContent = document.getElementById('resultsContent');
+            const results = document.getElementById('results');
+            
+            const filteredCount = data.subtasks.length;
+            const totalHours = Math.floor(data.total_estimated_time / 60);
+            const totalMinutes = data.total_estimated_time % 60;
+            
+            let html = `
+                <div class="success-message">
+                    <strong>✅ Task successfully broken down into ${filteredCount} substantial subtasks!</strong><br>
+                    Total estimated time: ${totalHours}h ${totalMinutes}m<br>
+                    ${data.has_deadline ? `🎯 Deadline: ${new Date(data.deadline).toLocaleString()}` : '📅 Scheduled based on calendar availability'}
+                </div>
+                
+                <h3>📋 Subtasks (30+ minutes only):</h3>
+            `;
+            
+            data.subtasks.forEach((subtask, index) => {
+                const durationHours = Math.floor(subtask.estimated_duration / 60);
+                const durationMinutes = subtask.estimated_duration % 60;
+                const durationText = durationHours > 0 ? 
+                    `${durationHours}h ${durationMinutes}m` : 
+                    `${durationMinutes}m`;
+                
+                html += `
+                    <div class="subtask priority-${subtask.priority}">
+                        <div class="subtask-title">${index + 1}. ${subtask.title}</div>
+                        <div class="subtask-description">${subtask.description}</div>
+                        <div class="subtask-meta">
+                            <span>⏱️ ${durationText}</span>
+                            <span>🎯 ${subtask.priority} priority</span>
+                            ${subtask.dependencies.length > 0 ? `<span>🔗 Depends on: ${subtask.dependencies.join(', ')}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (data.calendar_events && data.calendar_events.length > 0) {
+                html += `
+                    <h3>📅 Smart Calendar Schedule:</h3>
+                    <div class="calendar-events">
+                `;
+                
+                data.calendar_events.forEach(event => {
+                    if (event.error) {
+                        html += `
+                            <div class="error">
+                                Failed to create event for "${event.title}": ${event.error}
+                            </div>
+                        `;
+                    } else {
+                        const startTime = new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const endTime = new Date(event.start_time.split(' ')[0] + ' ' + event.end_time.split(' ')[1]).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const dateStr = new Date(event.start_time).toLocaleDateString();
+                        
+                        html += `
+                            <div class="event priority-${event.priority || 'medium'}">
+                                <div class="event-info">
+                                    <strong>${event.title}</strong><br>
+                                    <span class="event-time">📅 ${dateStr} • ${startTime} - ${endTime}</span><br>
+                                    <span class="event-duration">⏱️ ${event.duration} minutes</span>
+                                </div>
+                                ${event.link ? `<a href="${event.link}" target="_blank" class="event-link">View in Calendar</a>` : ''}
+                            </div>
+                        `;
+                    }
+                });
+                
+                html += '</div>';
+                
+                html += `
+                    <div class="schedule-summary">
+                        <h4>📊 Schedule Summary:</h4>
+                        <p>✅ ${data.calendar_events.filter(e => !e.error).length} tasks scheduled successfully</p>
+                        <p>🕐 All tasks automatically spaced with 30-minute buffers</p>
+                        <p>📧 Email and popup reminders set for each task</p>
+                        <p>🚫 Tasks under 30 minutes were excluded for focus on substantial work</p>
+                    </div>
+                `;
+            }
+            
+            resultsContent.innerHTML = html;
+            results.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
